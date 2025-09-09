@@ -32,23 +32,28 @@ if (UNIX)
 endif()
 
 set(cuda_sources
-  cudaImage.cu  
-  cudaImage.h  
-  cudaSiftH.cu 
-  cudaSiftH.h  
-  matching.cu  
-  cudaSiftD.h  
-  cudaSift.h  
-  cudautils.h
+  src/core/cudaImage.cu  
+  src/core/cudaImage.h  
+  src/core/cudaSiftH.cu 
+  src/core/cudaSiftH.h  
+  src/core/matching.cu
+  src/core/match.cu  
+  src/core/cudaSiftD.cu
+  src/core/cudaSiftD.h  
+  src/core/cudaSift.h  
+  src/core/cudautils.h
 )  
 
 set(sources
-  geomFuncs.cpp  
-  mainSift.cpp  
+  src/utils/geomFuncs.cpp  
+  src/apps/mainSift.cpp  
 )
 
 include_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR} 
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 #SET(CUDA_SEPARABLE_COMPILATION ON)
