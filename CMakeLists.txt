@@ -1,54 +1,51 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.18) # 现代CUDA支持
+project(E-Sift LANGUAGES CXX CUDA)
 
-project(cudaSift)
-set(cudaSift_VERSION_MAJOR 2)
-set(cudaSift_VERSION_MINOR 0)
-set(cudaSift_VERSION_PATCH 0)
+# 版本信息
+set(E_SIFT_VERSION_MAJOR 0)
+set(E_SIFT_VERSION_MINOR 2) 
+set(E_SIFT_VERSION_PATCH 0)
+set(E_SIFT_VERSION "${E_SIFT_VERSION_MAJOR}.${E_SIFT_VERSION_MINOR}.${E_SIFT_VERSION_PATCH}")
 
-set(CPACK_PACKAGE_VERSION_MAJOR "${cudaSift_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${cudaSift_VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${cudaSift_VERSION_PATCH}")
-set(CPACK_GENERATOR "ZIP")
-include(CPack)
+# 构建选项
+option(BUILD_PERFORMANCE_TESTS "Build performance test programs" OFF)
+option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
+option(USE_UNIFIED_MEMORY "Use CUDA unified memory" ON)
+option(BUILD_EXAMPLES "Build example programs" ON)
+option(BUILD_TESTS "Build test suite" OFF)
 
+# 设置标准
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+# 查找依赖库
 find_package(OpenCV REQUIRED)
-find_package(CUDA)
+find_package(CUDA REQUIRED)
+
 if (NOT CUDA_FOUND)
-  message(STATUS "CUDA not found. Project will not be built.")
-endif(NOT CUDA_FOUND)
+  message(FATAL_ERROR "CUDA not found. E-Sift requires CUDA.")
+endif()
 
 if (WIN32)
   set(EXTRA_CXX_FLAGS "/DVERBOSE /D_CRT_SECURE_NO_WARNINGS ")
-  list(APPEND CUDA_NVCC_FLAGS "-arch=sm_35;--compiler-options;-O2;-DVERBOSE") 
+  list(APPEND CUDA_NVCC_FLAGS "-arch=sm_87;--compiler-options;-O2;-DVERBOSE") 
 endif()
 if (UNIX)
   if (APPLE)
     set(EXTRA_CXX_FLAGS "-DVERBOSE -msse2")
-    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_35;--compiler-options;-O2;-DVERBOSE") 
+    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_87;--compiler-options;-O2;-DVERBOSE") 
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -msse2 ")
-    list(APPEND CUDA_NVCC_FLAGS "-lineinfo;-ccbin;/usr/bin/gcc-6;--compiler-options;-O2;-D_FORCE_INLINES;-DVERBOSE_NOT") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ")
+    list(APPEND CUDA_NVCC_FLAGS "-lineinfo;--compiler-options;-O2;-D_FORCE_INLINES;-DVERBOSE_NOT") 
   endif()
 endif()
 
-set(cuda_sources
-  src/core/cudaImage.cu  
-  src/core/cudaImage.h  
-  src/core/cudaSiftH.cu 
-  src/core/cudaSiftH.h  
-  src/core/matching.cu
-  src/core/match.cu  
-  src/core/cudaSiftD.cu
-  src/core/cudaSiftD.h  
-  src/core/cudaSift.h  
-  src/core/cudautils.h
-)  
+# 设置CUDA架构
+set(CMAKE_CUDA_ARCHITECTURES 87) # Jetson AGX Orin Ampere架构
 
-set(sources
-  src/utils/geomFuncs.cpp  
-  src/apps/mainSift.cpp  
-)
-
+# 全局包含目录
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/src/core
@@ -56,9 +53,24 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-#SET(CUDA_SEPARABLE_COMPILATION ON)
+# 添加子目录
+add_subdirectory(src/core)
+add_subdirectory(src/utils)
+add_subdirectory(src/apps)
 
-cuda_add_executable(cudasift ${cuda_sources} ${sources} OPTIONS -arch=sm_35)
+# 可选组件
+if(BUILD_TESTS)
+  add_subdirectory(tests)
+endif()
+
+# 创建兼容的主可执行文件（保持原有接口）
+add_executable(cudasift src/apps/mainSift.cpp)
+target_link_libraries(cudasift 
+  cudasift_core 
+  cudasift_utils
+  ${OpenCV_LIBS}
+  ${CUDA_LIBRARIES}
+)
 
 #cuda_add_executable(l2net l2netD.cu OPTIONS -arch=sm_35)
 

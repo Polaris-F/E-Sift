@@ -32,13 +32,27 @@ int main(int argc, char **argv)
 
   // Read images using OpenCV
   cv::Mat limg, rimg;
+  cv::Mat temp1, temp2;
   if (imgSet) {
-    cv::imread("data/left.pgm", 0).convertTo(limg, CV_32FC1);
-    cv::imread("data/righ.pgm", 0).convertTo(rimg, CV_32FC1);
+    std::cout << "Loading pgm images..." << std::endl;
+    temp1 = cv::imread("../data/left.pgm", 0);
+    temp2 = cv::imread("../data/righ.pgm", 0);
   } else {
-    cv::imread("data/img1.png", 0).convertTo(limg, CV_32FC1);
-    cv::imread("data/img2.png", 0).convertTo(rimg, CV_32FC1);
+    std::cout << "Loading jpg images..." << std::endl;
+    temp1 = cv::imread("../data/img1.jpg", 0);
+    temp2 = cv::imread("../data/img2.jpg", 0);
+    std::cout << "temp1.empty(): " << temp1.empty() << ", temp2.empty(): " << temp2.empty() << std::endl;
   }
+  
+  if (temp1.empty() || temp2.empty()) {
+    std::cerr << "Error: Could not load images!" << std::endl;
+    std::cerr << "temp1.empty(): " << temp1.empty() << ", temp2.empty(): " << temp2.empty() << std::endl;
+    return -1;
+  }
+  
+  temp1.convertTo(limg, CV_32FC1);
+  temp2.convertTo(rimg, CV_32FC1);
+  
   //cv::flip(limg, rimg, -1);
   unsigned int w = limg.cols;
   unsigned int h = limg.rows;
