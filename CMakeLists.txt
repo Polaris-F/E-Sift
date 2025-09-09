@@ -19,43 +19,43 @@ endif(NOT CUDA_FOUND)
 
 if (WIN32)
   set(EXTRA_CXX_FLAGS "/DVERBOSE /D_CRT_SECURE_NO_WARNINGS ")
-  list(APPEND CUDA_NVCC_FLAGS "-arch=sm_35;--compiler-options;-O2;-DVERBOSE") 
+  list(APPEND CUDA_NVCC_FLAGS "-arch=sm_87;--compiler-options;-O2;-DVERBOSE") 
 endif()
 if (UNIX)
   if (APPLE)
     set(EXTRA_CXX_FLAGS "-DVERBOSE -msse2")
-    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_35;--compiler-options;-O2;-DVERBOSE") 
+    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_87;--compiler-options;-O2;-DVERBOSE") 
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -msse2 ")
-    list(APPEND CUDA_NVCC_FLAGS "-lineinfo;-ccbin;/usr/bin/gcc-6;--compiler-options;-O2;-D_FORCE_INLINES;-DVERBOSE_NOT") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ")
+    list(APPEND CUDA_NVCC_FLAGS "-lineinfo;--compiler-options;-O2;-D_FORCE_INLINES;-DVERBOSE_NOT;-arch=sm_87") 
   endif()
 endif()
 
 set(cuda_sources
-  cudaImage.cu  
-  cudaImage.h  
-  cudaSiftH.cu 
-  cudaSiftH.h  
-  matching.cu  
-  cudaSiftD.h  
-  cudaSift.h  
-  cudautils.h
+  src/cudaImage.cu  
+  src/cudaImage.h  
+  src/cudaSiftH.cu 
+  src/cudaSiftH.h  
+  src/matching.cu  
+  src/cudaSiftD.h  
+  src/cudaSift.h  
+  src/cudautils.h
 )  
 
 set(sources
-  geomFuncs.cpp  
-  mainSift.cpp  
+  src/geomFuncs.cpp  
+  src/mainSift.cpp  
 )
 
 include_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR} 
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 #SET(CUDA_SEPARABLE_COMPILATION ON)
 
-cuda_add_executable(cudasift ${cuda_sources} ${sources} OPTIONS -arch=sm_35)
+cuda_add_executable(cudasift ${cuda_sources} ${sources} OPTIONS -arch=sm_87)
 
-#cuda_add_executable(l2net l2netD.cu OPTIONS -arch=sm_35)
+#cuda_add_executable(l2net l2netD.cu OPTIONS -arch=sm_87)
 
 set_target_properties(cudasift PROPERTIES
   COMPILE_FLAGS "${EXTRA_CXX_FLAGS}"			   
@@ -68,9 +68,8 @@ target_link_libraries(cudasift ${CUDA_cudadevrt_LIBRARY} ${OpenCV_LIBS})
 install(FILES 
   ${cuda_sources} 
   ${sources}
-  cudaSiftD.cu
+  src/cudaSiftD.cu
   CMakeLists.txt
-  Copyright.txt
   DESTINATION .
 )
 install(FILES data/left.pgm data/righ.pgm

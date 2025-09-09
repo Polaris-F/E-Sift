@@ -36,8 +36,8 @@ int main(int argc, char **argv)
     cv::imread("data/left.pgm", 0).convertTo(limg, CV_32FC1);
     cv::imread("data/righ.pgm", 0).convertTo(rimg, CV_32FC1);
   } else {
-    cv::imread("data/img1.png", 0).convertTo(limg, CV_32FC1);
-    cv::imread("data/img2.png", 0).convertTo(rimg, CV_32FC1);
+    cv::imread("data/img1.jpg", 0).convertTo(limg, CV_32FC1);
+    cv::imread("data/img2.jpg", 0).convertTo(rimg, CV_32FC1);
   }
   //cv::flip(limg, rimg, -1);
   unsigned int w = limg.cols;
