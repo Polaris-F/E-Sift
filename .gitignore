@@ -2,4 +2,6 @@
 *.jpg
 
 build/
+data/
 .DS_Store
+
