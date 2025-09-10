@@ -1,0 +1,166 @@
+# CUDA SIFT 配置文件 (TXT格式)
+# 本配置文件包含所有可调节的SIFT算法参数
+# 格式: 参数名 = 数值  (注释说明)
+# 修改这些参数可以调整特征提取的效果和性能
+
+# ==============================
+# 核心算法参数 (Core Algorithm Parameters)
+# ==============================
+
+# 初始模糊值 (范围: 0.5-2.0, 推荐: 1.0)
+# 较大值会增加初始平滑，可能减少噪声影响
+initial_blur = 1.0
+
+# DoG响应阈值 (范围: 1.0-10.0, 推荐: 3.0-4.5)
+# 较高值会减少特征点数量但提高质量
+# 对于高质量图像使用3.0，对于低质量图像使用4.5
+dog_threshold = 1.5
+
+# 金字塔层数 (范围: 3-8, 推荐: 5)
+# 更多层数可以检测更大尺度的特征，但增加计算量
+num_octaves = 5
+
+# 最低尺度 (范围: 0.0-2.0, 推荐: 0.0)
+# 设置最小检测尺度，0.0表示检测所有尺度
+lowest_scale = 0.0
+
+# 边缘响应限制 (范围: 5.0-20.0, 推荐: 10.0)
+# 用于去除边缘响应，较高值保留更多边缘特征
+edge_limit = 10.0
+
+# 是否启用尺度放大 (true/false)
+# true: 将图像放大2倍后处理，可检测更多小尺度特征
+# false: 使用原始分辨率处理
+scale_up = false
+
+# ==============================
+# 特征匹配参数 (Feature Matching Parameters)
+# ==============================
+
+# 最小匹配得分 (范围: 0.0-1.0, 推荐: 0.85)
+# 较高值会减少误匹配但可能丢失正确匹配
+min_score = 0.85
+
+# 最大歧义度 (范围: 0.0-1.0, 推荐: 0.95)
+# 用于判断匹配的唯一性，较低值要求更明确的匹配
+max_ambiguity = 0.95
+
+# ==============================
+# 单应性估计参数 (Homography Estimation Parameters)
+# ==============================
+
+# RANSAC迭代次数 (范围: 1000-50000, 推荐: 10000)
+# 更多迭代可能找到更好的模型，但增加计算时间
+ransac_iterations = 10000
+
+# 内点阈值 (范围: 1.0-10.0, 推荐: 5.0)
+# 像素距离阈值，用于判断点是否为内点
+inlier_threshold = 5.0
+
+# 优化迭代次数 (范围: 1-20, 推荐: 5)
+# 单应性矩阵优化的迭代次数
+optimization_iterations = 5
+
+# 优化阈值 (范围: 1.0-5.0, 推荐: 3.0)
+# 优化过程中的距离阈值
+optimization_threshold = 3.0
+
+# ==============================
+# 内存和性能参数 (Memory and Performance Parameters)
+# ==============================
+
+# 最大特征点数量 (范围: 4096-65536, 推荐: 32768)
+# 限制每张图像提取的最大特征点数量
+max_features = 32768
+
+# CUDA设备编号 (范围: 0-GPU数量-1, 推荐: 0)
+# 指定使用的GPU设备
+cuda_device = 0
+
+# ==============================
+# 输入输出配置 (Input/Output Configuration)
+# ==============================
+
+# 图像数据集选择 (0: jpg图像对, 1: pgm图像对)
+image_set = 0
+
+# 输入图像路径
+image1_path = data/img1.jpg
+image2_path = data/img2.jpg
+alt_image1_path = data/left.pgm
+alt_image2_path = data/righ.pgm
+
+# ==============================
+# 调试和输出参数 (Debug and Output Parameters)
+# ==============================
+
+# 是否启用详细输出 (true/false)
+verbose = false
+
+# 是否输出匹配可视化 (true/false)
+show_matches = true
+
+# 是否保存中间结果 (true/false)
+save_intermediate = false
+
+# 输出图像路径
+output_path = tmp/
+
+# ==============================
+# 高级参数 (Advanced Parameters - 编译时参数)
+# ==============================
+# 注意: 以下参数需要重新编译代码才能生效
+
+# DoG金字塔尺度数量 (范围: 3-7, 推荐: 5)
+num_scales = 5
+
+# 拉普拉斯核半径 (范围: 2-8, 推荐: 4)
+laplace_radius = 4
+
+# 低通滤波核半径 (范围: 2-8, 推荐: 4)
+lowpass_radius = 4
+
+# ==============================
+# 可视化调试参数 (Visualization Debug Parameters)
+# ==============================
+
+# 是否启用可视化调试 (true/false)
+enable_visualization = true
+
+# 是否保存可视化结果到文件 (true/false)
+save_visualization = true
+
+# 是否显示可视化窗口 (true/false) - 在无GUI环境中设为false
+show_visualization_window = false
+
+# 特征点圆圈半径 (范围: 1-10, 推荐: 3)
+feature_circle_radius = 3
+
+# 匹配线条粗细 (范围: 1-5, 推荐: 1)
+match_line_thickness = 1
+
+# 是否只显示好的匹配 (true/false)
+show_only_good_matches = true
+
+# 图像叠加透明度 (范围: 0.0-1.0, 推荐: 0.5)
+# 0.0 表示只显示第一张图像，1.0 表示只显示第二张图像
+overlay_alpha = 0.5
+
+# 可视化输出路径
+visualization_output_path = tmp/
+
+# ==============================
+# 线程块配置 (Thread Block Configuration)
+# ==============================
+# 以下参数影响CUDA性能，需要根据GPU架构调整
+
+scaledown_width = 64
+scaledown_height = 16
+scaleup_width = 64
+scaleup_height = 8
+minmax_width = 30
+minmax_height = 8
+laplace_width = 128
+laplace_height = 4
+lowpass_width = 24
+lowpass_height = 32

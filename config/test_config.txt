@@ -1,0 +1,30 @@
+# 测试配置 - 快速处理
+dog_threshold = 1.3
+num_octaves = 5
+initial_blur = 1.0
+
+min_score = 0.85
+max_ambiguity = 0.95
+ransac_iterations = 5000
+max_features = 16384
+cuda_device = 0
+image_set = 0
+image1_path = data/img1.jpg
+image2_path = data/img2.jpg
+verbose = true
+show_matches = true
+save_intermediate = false
+lowest_scale = 0.0
+edge_limit = 10.0
+scale_up = false
+inlier_threshold = 5.0
+optimization_iterations = 5
+optimization_threshold = 3.0
+alt_image1_path = data/left.pgm
+alt_image2_path = data/righ.pgm
+output_path = tmp/
+
+# 可视化配置参数
+enable_visualization = true
+overlay_alpha = 0.3
+visualization_output_path = tmp/

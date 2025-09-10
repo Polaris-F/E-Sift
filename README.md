@@ -10,6 +10,49 @@ The code is free to use for non-commercial applications. If you use the code for
 
 M. Bj&ouml;rkman, N. Bergstr&ouml;m and D. Kragic, "Detecting, segmenting and tracking unknown objects using multi-label MRF inference", CVIU, 118, pp. 111-127, January 2014. [ScienceDirect](http://www.sciencedirect.com/science/article/pii/S107731421300194X)
 
+## New Feature: Configuration System (2025-09-09)
+
+This version introduces a comprehensive configuration system that allows you to adjust SIFT algorithm parameters through configuration files instead of recompiling the code. This provides better flexibility for parameter tuning and different use cases.
+
+### Key Features:
+- **TXT Configuration Format**: Simple `key = value` format for easy editing
+- **YAML Configuration Format**: Structured configuration with grouping
+- **Parameter Validation**: Automatic checking of parameter ranges
+- **Multiple Build Targets**: Original, YAML-configurable, and TXT-configurable versions
+- **Backward Compatibility**: Command-line arguments still work
+
+### Quick Start with Configuration:
+```bash
+# Build all versions
+mkdir build && cd build
+cmake .. && make
+
+# Run with TXT configuration (recommended)
+./cudasift_txt 0 0 config/sift_config.txt
+
+# Run with YAML configuration  
+./cudasift_configurable 0 0 config/sift_config.yaml
+
+# Run original version (hardcoded parameters)
+./cudasift
+```
+
+### Configuration Files:
+- `config/sift_config.txt` - Complete TXT format configuration
+- `config/sift_config_simple.txt` - Simplified TXT configuration  
+- `config/sift_config.yaml` - Complete YAML format configuration
+- `CONFIG_USAGE.md` - Detailed usage instructions
+- `PARAMETER_TUNING_GUIDE.md` - Parameter optimization guide
+
+### Key Configurable Parameters:
+- `dog_threshold`: Controls feature point quantity and quality (1.0-10.0)
+- `num_octaves`: Number of scale pyramid levels (3-8)
+- `min_score`: Minimum matching score (0.0-1.0)
+- `max_features`: Maximum number of features (4096-65536)
+- `ransac_iterations`: RANSAC iterations for homography (1000-50000)
+
+See `PARAMETER_TUNING_GUIDE.md` for detailed optimization strategies.
+
 ## Update in feature matching (2019-05-17)
 
 The brute force feature matcher has been significantly improved in speed. The largest improvements can be seen for large feature sets with 10000 features or more, but as can be seen below, it performs rather well even with just 2000 features. The file [match.pdf](https://github.com/Celebrandil/CudaSift/blob/Pascal/match.pdf) includes a description of the optimizations done in this version.

@@ -1,0 +1,39 @@
+# SIFT 简化配置文件
+# 包含最常用的参数，用于快速调整
+
+# 核心参数 - 影响特征检测质量和数量
+dog_threshold = 1.3      # 阈值越低，特征点越多 (1.0-10.0)
+num_octaves = 3          # 金字塔层数，影响尺度范围 (3-8)
+initial_blur = 1.0       # 初始模糊 (0.5-2.0)
+edge_limit = 10.0        # 边缘过滤 (5.0-20.0)
+scale_up = false         # 是否放大图像处理
+
+# 匹配参数 - 影响匹配质量
+min_score = 0.85         # 最小匹配得分 (0.0-1.0)
+max_ambiguity = 0.95     # 最大歧义度 (0.0-1.0)
+
+# 单应性计算参数
+ransac_iterations = 10000  # RANSAC迭代次数 (1000-50000)
+inlier_threshold = 5.0     # 内点阈值 (1.0-10.0)
+
+# 系统参数
+max_features = 32768     # 最大特征点数 (4096-65536)
+cuda_device = 0          # GPU设备号
+
+# 输入输出
+image_set = 0            # 0:jpg图像对, 1:pgm图像对
+image1_path = data/img1.jpg
+image2_path = data/img2.jpg
+alt_image1_path = data/left.pgm
+alt_image2_path = data/righ.pgm
+
+# 调试选项
+verbose = false          # 详细输出
+show_matches = true      # 显示匹配结果
+save_intermediate = false # 保存中间结果
+
+# 优化参数（通常不需要修改）
+optimization_iterations = 5
+optimization_threshold = 3.0
+lowest_scale = 0.0
+output_path = tmp/

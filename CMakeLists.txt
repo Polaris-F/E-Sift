@@ -55,13 +55,30 @@ include_directories(
 
 cuda_add_executable(cudasift ${cuda_sources} ${sources} OPTIONS -arch=sm_87)
 
+# 创建使用TXT配置文件的版本
+set(txt_configurable_sources
+  src/geomFuncs.cpp  
+  src/mainSift_txt.cpp
+  src/siftConfigTxt.cpp
+  src/siftConfigTxt.h
+  src/visualizer.cpp
+  src/visualizer.h
+)
+
+cuda_add_executable(cudasift_txt ${cuda_sources} ${txt_configurable_sources} OPTIONS -arch=sm_87)
+
 #cuda_add_executable(l2net l2netD.cu OPTIONS -arch=sm_87)
 
 set_target_properties(cudasift PROPERTIES
   COMPILE_FLAGS "${EXTRA_CXX_FLAGS}"			   
 )
 
+set_target_properties(cudasift_txt PROPERTIES
+  COMPILE_FLAGS "${EXTRA_CXX_FLAGS}"			   
+)
+
 target_link_libraries(cudasift ${CUDA_cudadevrt_LIBRARY} ${OpenCV_LIBS})
+target_link_libraries(cudasift_txt ${CUDA_cudadevrt_LIBRARY} ${OpenCV_LIBS})
 #  /usr/local/cuda/lib64/libcudadevrt.a ${OpenCV_LIBS} 
 #)
  
