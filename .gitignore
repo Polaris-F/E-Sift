@@ -1,7 +1,34 @@
 
 *.jpg
 
+# Build directories
 build/
 data/
-.DS_Store
 
+# Temporary files and directories
+tmp/
+tmp/*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Backup files
+*~
+*.bak
+*.swp
+*.swo

@@ -1,57 +1,164 @@
-# CudaSift - SIFT features with CUDA
+# CudaSift - High-Performance CUDA SIFT with Python Bindings
 
-This is the fourth version of a SIFT (Scale Invariant Feature Transform) implementation using CUDA for GPUs from NVidia. The first version is from 2007 and GPUs have evolved since then. This version is slightly more precise and considerably faster than the previous versions and has been optimized for Kepler and later generations of GPUs.
+🎉 **NEW: Complete Python API (2025-09-11)** - Now includes full-featured Python bindings with dual-mode API design!
 
-On a GTX 1060 GPU the code takes about 1.2 ms on a 1280x960 pixel image and 1.7 ms on a 1920x1080 pixel image. There is also code for brute-force matching of features that takes about 2.2 ms for two sets of around 1900 SIFT features each.
+This is an enhanced version of CUDA SIFT (Scale Invariant Feature Transform) implementation featuring:
+- **High-performance CUDA acceleration** for NVIDIA GPUs
+- **Complete Python bindings** with pybind11
+- **Dual-mode API** for speed vs accuracy optimization
+- **Comprehensive configuration system**
+- **Production-ready performance** (~5ms feature extraction, ~3ms matching on 1920x1080)
 
-The code relies on CMake for compilation and OpenCV for image containers. OpenCV can however be quite easily changed to something else. The code can be relatively hard to read, given the way things have been parallelized for maximum speed.
+## 🚀 Quick Start
 
-The code is free to use for non-commercial applications. If you use the code for research, please cite to the following paper.
+### Python API (Recommended)
+```python
+import sys
+sys.path.insert(0, 'build/python')
+import cuda_sift
+import cv2
 
-M. Bj&ouml;rkman, N. Bergstr&ouml;m and D. Kragic, "Detecting, segmenting and tracking unknown objects using multi-label MRF inference", CVIU, 118, pp. 111-127, January 2014. [ScienceDirect](http://www.sciencedirect.com/science/article/pii/S107731421300194X)
+# Load images
+img1 = cv2.imread('data/img1.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)
+img2 = cv2.imread('data/img2.jpg', cv2.IMREAD_GRAYSCALE).astype(np.float32)
 
-## New Feature: Configuration System (2025-09-09)
+# Initialize SIFT components
+config = cuda_sift.SiftConfig('config/test_config.txt')
+extractor = cuda_sift.SiftExtractor(config)
+matcher = cuda_sift.SiftMatcher()
 
-This version introduces a comprehensive configuration system that allows you to adjust SIFT algorithm parameters through configuration files instead of recompiling the code. This provides better flexibility for parameter tuning and different use cases.
+# Extract features
+features1 = extractor.extract(img1)
+features2 = extractor.extract(img2)
 
-### Key Features:
-- **TXT Configuration Format**: Simple `key = value` format for easy editing
-- **YAML Configuration Format**: Structured configuration with grouping
-- **Parameter Validation**: Automatic checking of parameter ranges
-- **Multiple Build Targets**: Original, YAML-configurable, and TXT-configurable versions
-- **Backward Compatibility**: Command-line arguments still work
+# Speed mode: Fast matching + homography
+result = matcher.match_and_compute_homography(
+    features1, features2, use_improve=False)  # ~3ms
 
-### Quick Start with Configuration:
-```bash
-# Build all versions
-mkdir build && cd build
-cmake .. && make
-
-# Run with TXT configuration (recommended)
-./cudasift_txt 0 0 config/sift_config.txt
-
-# Run with YAML configuration  
-./cudasift_configurable 0 0 config/sift_config.yaml
-
-# Run original version (hardcoded parameters)
-./cudasift
+# Accuracy mode: Precise matching + refined homography  
+result = matcher.match_and_compute_homography(
+    features1, features2, use_improve=True)   # ~8ms
 ```
 
-### Configuration Files:
-- `config/sift_config.txt` - Complete TXT format configuration
-- `config/sift_config_simple.txt` - Simplified TXT configuration  
-- `config/sift_config.yaml` - Complete YAML format configuration
-- `CONFIG_USAGE.md` - Detailed usage instructions
-- `PARAMETER_TUNING_GUIDE.md` - Parameter optimization guide
+### C++ (Original)
+```bash
+mkdir build && cd build
+cmake .. && make
+./cudasift_txt 0 0 ../config/sift_config.txt
+```
 
-### Key Configurable Parameters:
-- `dog_threshold`: Controls feature point quantity and quality (1.0-10.0)
-- `num_octaves`: Number of scale pyramid levels (3-8)
-- `min_score`: Minimum matching score (0.0-1.0)
-- `max_features`: Maximum number of features (4096-65536)
-- `ransac_iterations`: RANSAC iterations for homography (1000-50000)
+## 📊 Performance Benchmarks
 
-See `PARAMETER_TUNING_GUIDE.md` for detailed optimization strategies.
+**Test Environment**: NVIDIA Orin, 1920x1080 images
+
+| Operation | Time | Throughput |
+|-----------|------|------------|
+| Feature Extraction | 5.08ms | 197 fps |
+| Feature Matching | 1.92ms | 1656 features/ms |
+| Speed Mode (complete) | 2.93ms | 661 inliers |
+| Accuracy Mode (complete) | 7.63ms | 658 refined inliers |
+
+## 📁 Project Structure
+
+```
+E-Sift/
+├── docs/                    # 📖 Documentation
+│   ├── API_REFERENCE.md    # Complete API reference
+│   ├── QUICK_REFERENCE.md  # Quick start guide
+│   └── INTEGRATION_GUIDE.md # Integration examples
+├── python/                  # 🐍 Python bindings
+│   ├── examples/           # Usage examples and templates
+│   └── tests/              # Python unit tests
+├── test/                   # 🧪 Test scripts
+│   ├── performance_benchmark.py # Performance testing
+│   └── test_real_data_complete.py # Complete validation
+├── src/                    # 🔧 C++/CUDA source code  
+├── config/                 # ⚙️ Configuration files
+├── data/                   # 🖼️ Test images
+└── tmp/                    # 📊 Output results
+```
+## 🎯 API Reference & Documentation
+
+| Document | Description |
+|----------|-------------|
+| [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) | Complete Python API reference |
+| [`docs/QUICK_REFERENCE.md`](docs/QUICK_REFERENCE.md) | Quick start guide |
+| [`docs/INTEGRATION_GUIDE.md`](docs/INTEGRATION_GUIDE.md) | Integration examples |
+| [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) | File organization guide |
+| [`python/examples/`](python/examples/) | Code examples and templates |
+
+## 🧪 Testing & Validation
+
+```bash
+# Performance benchmarking
+cd test
+python performance_benchmark.py
+
+# Complete functionality test
+python test_real_data_complete.py
+
+# API demonstrations
+cd ../python/examples  
+python demo_api_usage.py
+```
+
+## 🔧 Build Instructions
+
+### Prerequisites
+- CUDA-capable NVIDIA GPU
+- CUDA Toolkit 
+- CMake 3.12+
+- OpenCV
+- Python 3.7+ (for Python bindings)
+- pybind11
+
+### Build Steps
+```bash
+git clone <repository-url>
+cd E-Sift
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+
+# Test the build
+./cudasift_txt 0 0 ../config/test_config.txt
+```
+
+### Python Module Installation
+```bash
+# The Python module is built automatically with CMake
+# Add to your Python path:
+export PYTHONPATH="$PWD/build/python:$PYTHONPATH"
+
+# Or in Python:
+import sys
+sys.path.insert(0, 'build/python')
+import cuda_sift
+```
+
+## ⚙️ Configuration System
+
+### Key Parameters
+- `dog_threshold`: Feature detection sensitivity (1.0-10.0)
+- `num_octaves`: Scale pyramid levels (3-8) 
+- `max_features`: Maximum features to extract (1000-32768)
+- `min_score`: Matching quality threshold (0.0-1.0)
+- `ransac_iterations`: RANSAC iterations (1000-50000)
+
+### Example Configuration (`config/test_config.txt`)
+```
+dog_threshold = 1.3
+num_octaves = 5  
+max_features = 5000
+min_score = 0.85
+max_ambiguity = 0.95
+ransac_iterations = 1000
+ransac_threshold = 5.0
+```
+
+## 📈 Historical Performance Evolution
+
+The CUDA SIFT implementation has been continuously optimized since 2007:
 
 ## Update in feature matching (2019-05-17)
 

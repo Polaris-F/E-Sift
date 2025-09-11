@@ -398,7 +398,7 @@ def main():
                 print(f"⚠️  1280x1024 需要缩放到约 {safe_1024[0]}x{safe_1024[1]}")
         
         # 保存详细结果
-        result_file = '/home/jetson/lhf/workspace_2/E-Sift/tmp/resolution_analysis.json'
+        result_file = '/home/jetson/lhf/workspace_2/E-Sift/resolution_analysis.json'
         with open(result_file, 'w') as f:
             def convert_numpy(obj):
                 if isinstance(obj, np.ndarray):

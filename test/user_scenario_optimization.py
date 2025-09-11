@@ -355,7 +355,7 @@ def main():
         benchmark_results = performance_benchmark_for_user_scenarios()
         
         # 3. 保存基准测试结果
-        result_file = '/home/jetson/lhf/workspace_2/E-Sift/tmp/user_scenario_benchmark.json'
+        result_file = '/home/jetson/lhf/workspace_2/E-Sift/user_scenario_benchmark.json'
         with open(result_file, 'w') as f:
             def convert_numpy(obj):
                 if isinstance(obj, np.ndarray):
@@ -381,7 +381,7 @@ def main():
         print("✅ 1920x1080: 完全支持，性能优秀")
         print("✅ 1280x1024: 完全支持，性能非常好")
         print("📖 详细使用指南: OPTIMIZED_USAGE_GUIDE.md")
-        print("📊 性能数据: tmp/user_scenario_benchmark.json")
+        print("📊 性能数据: user_scenario_benchmark.json")
         
         return True
         

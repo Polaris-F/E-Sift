@@ -1,6 +1,6 @@
 # 测试配置 - 快速处理
 dog_threshold = 1.3
-num_octaves = 5
+num_octaves = 4
 initial_blur = 1.0
 
 min_score = 0.85
