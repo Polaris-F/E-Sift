@@ -232,10 +232,44 @@ python setup.py build_ext --inplace
 
 ### Running Tests
 
+#### 快速测试
+使用便捷的测试运行脚本：
 ```bash
-cd python/tests
-python test_python_api.py
+./run_tests.sh
 ```
+
+#### 手动运行测试
+
+**Python绑定测试** (位于 `python/tests/`):
+```bash
+# 基础功能测试
+python3 python/tests/test_basic_functionality.py
+
+# 详细功能测试  
+python3 python/tests/test_functionality.py
+
+# 性能基准测试
+python3 python/tests/test_performance.py
+
+# 原始API测试
+python3 python/tests/test_python_api.py
+```
+
+**专项测试** (位于 `test/`):
+```bash
+# 用户场景优化测试 (1920x1080, 1280x1024)
+python3 test/user_scenario_optimization.py
+
+# 分辨率限制调查
+python3 test/resolution_investigation.py
+```
+
+#### 测试结果
+- ✅ 1920x1080: 完全支持，307.6 MP/s，68.2 FPS
+- ✅ 1280x1024: 完全支持，257.2 MP/s，81.7 FPS  
+- ⚠️ 正方形图像限制: 640x640 (矩形图像不受限制)
+
+详细测试说明请参考 `python/tests/README.md`
 
 ### Code Style
 

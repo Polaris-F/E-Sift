@@ -11,7 +11,7 @@
 #define SCALEDOWN_W    64 // 60 
 
 // Scale down thread block height
-#define SCALEDOWN_H    16 // 8
+#define SCALEDOWN_H     8 // 修复线程数超限问题: (64+4)×(8+4)=816≤1024
 
 // Scale up thread block width
 #define SCALEUP_W      64
