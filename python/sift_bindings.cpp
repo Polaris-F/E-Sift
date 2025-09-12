@@ -80,18 +80,97 @@ private:
     float* temp_memory_;
     bool initialized_;
     bool cuda_initialized_;
+    bool external_context_;
+    cudaStream_t cuda_stream_;
+    bool owns_stream_;
     
 public:
-    PythonSiftExtractor(const PythonSiftConfig& config) 
-        : config_(config), temp_memory_(nullptr), initialized_(false), cuda_initialized_(false) {
-        // Initialize CUDA context
-        InitCuda(config_.config.params.cuda_device);
-        cuda_initialized_ = true;
+    PythonSiftExtractor(const PythonSiftConfig& config, bool external_context = false) 
+        : config_(config), temp_memory_(nullptr), initialized_(false), 
+          cuda_initialized_(false), external_context_(external_context),
+          cuda_stream_(nullptr), owns_stream_(false) {
+        
+        if (!external_context_) {
+            // Initialize CUDA context only if not using external context
+            InitCuda(config_.config.params.cuda_device);
+            cuda_initialized_ = true;
+        }
+        
+        // Create default stream if not using external context
+        if (!external_context_) {
+            cudaStreamCreate(&cuda_stream_);
+            owns_stream_ = true;
+        }
     }
     
     ~PythonSiftExtractor() {
         if (temp_memory_) {
             FreeSiftTempMemory(temp_memory_);
+        }
+        
+        // Clean up stream if we own it
+        if (owns_stream_ && cuda_stream_) {
+            cudaStreamDestroy(cuda_stream_);
+        }
+    }
+    
+    // Set external CUDA stream (for PyCUDA integration)
+    void set_cuda_stream(uintptr_t stream_handle) {
+        // Destroy existing stream if we own it
+        if (owns_stream_ && cuda_stream_) {
+            cudaStreamDestroy(cuda_stream_);
+            owns_stream_ = false;
+        }
+        
+        // Set external stream
+        cuda_stream_ = reinterpret_cast<cudaStream_t>(stream_handle);
+        owns_stream_ = false;
+    }
+    
+    // Get current CUDA stream handle (for PyCUDA integration)
+    uintptr_t get_cuda_stream() const {
+        return reinterpret_cast<uintptr_t>(cuda_stream_);
+    }
+    
+    // Synchronize CUDA stream
+    void synchronize() {
+        if (cuda_stream_) {
+            cudaStreamSynchronize(cuda_stream_);
+        }
+    }
+    
+    // Get configuration parameters
+    py::dict get_params() const {
+        py::dict params;
+        params["dog_threshold"] = config_.get_dog_threshold();
+        params["num_octaves"] = config_.get_num_octaves();
+        params["initial_blur"] = config_.get_initial_blur();
+        params["lowest_scale"] = config_.get_lowest_scale();
+        params["scale_up"] = config_.get_scale_up();
+        params["max_features"] = config_.get_max_features();
+        params["external_context"] = external_context_;
+        return params;
+    }
+    
+    // Update configuration parameters
+    void set_params(py::dict params) {
+        if (params.contains("dog_threshold")) {
+            config_.set_dog_threshold(params["dog_threshold"].cast<float>());
+        }
+        if (params.contains("num_octaves")) {
+            config_.set_num_octaves(params["num_octaves"].cast<int>());
+        }
+        if (params.contains("initial_blur")) {
+            config_.set_initial_blur(params["initial_blur"].cast<float>());
+        }
+        if (params.contains("lowest_scale")) {
+            config_.set_lowest_scale(params["lowest_scale"].cast<float>());
+        }
+        if (params.contains("scale_up")) {
+            config_.set_scale_up(params["scale_up"].cast<bool>());
+        }
+        if (params.contains("max_features")) {
+            config_.set_max_features(params["max_features"].cast<int>());
         }
     }
     
@@ -182,10 +261,72 @@ class PythonSiftMatcher {
 private:
     float min_score_;
     float max_ambiguity_;
+    bool external_context_;
+    cudaStream_t cuda_stream_;
+    bool owns_stream_;
     
 public:
-    PythonSiftMatcher(float min_score = 0.85f, float max_ambiguity = 0.95f) 
-        : min_score_(min_score), max_ambiguity_(max_ambiguity) {}
+    PythonSiftMatcher(float min_score = 0.85f, float max_ambiguity = 0.95f, bool external_context = false) 
+        : min_score_(min_score), max_ambiguity_(max_ambiguity), external_context_(external_context),
+          cuda_stream_(nullptr), owns_stream_(false) {
+        
+        // Create default stream if not using external context
+        if (!external_context_) {
+            cudaStreamCreate(&cuda_stream_);
+            owns_stream_ = true;
+        }
+    }
+    
+    ~PythonSiftMatcher() {
+        // Clean up stream if we own it
+        if (owns_stream_ && cuda_stream_) {
+            cudaStreamDestroy(cuda_stream_);
+        }
+    }
+    
+    // Set external CUDA stream (for PyCUDA integration)
+    void set_cuda_stream(uintptr_t stream_handle) {
+        // Destroy existing stream if we own it
+        if (owns_stream_ && cuda_stream_) {
+            cudaStreamDestroy(cuda_stream_);
+            owns_stream_ = false;
+        }
+        
+        // Set external stream
+        cuda_stream_ = reinterpret_cast<cudaStream_t>(stream_handle);
+        owns_stream_ = false;
+    }
+    
+    // Get current CUDA stream handle (for PyCUDA integration)
+    uintptr_t get_cuda_stream() const {
+        return reinterpret_cast<uintptr_t>(cuda_stream_);
+    }
+    
+    // Synchronize CUDA stream
+    void synchronize() {
+        if (cuda_stream_) {
+            cudaStreamSynchronize(cuda_stream_);
+        }
+    }
+    
+    // Get matching parameters
+    py::dict get_params() const {
+        py::dict params;
+        params["min_score"] = min_score_;
+        params["max_ambiguity"] = max_ambiguity_;
+        params["external_context"] = external_context_;
+        return params;
+    }
+    
+    // Update matching parameters
+    void set_params(py::dict params) {
+        if (params.contains("min_score")) {
+            min_score_ = params["min_score"].cast<float>();
+        }
+        if (params.contains("max_ambiguity")) {
+            max_ambiguity_ = params["max_ambiguity"].cast<float>();
+        }
+    }
     
     // Match two sets of SIFT features
     py::dict match(py::dict features1, py::dict features2) {
@@ -588,16 +729,35 @@ PYBIND11_MODULE(cuda_sift, m) {
     // Bind feature extractor
     py::class_<PythonSiftExtractor>(m, "SiftExtractor")
         .def(py::init<const PythonSiftConfig&>())
+        .def(py::init<const PythonSiftConfig&, bool>(),
+             py::arg("config"), py::arg("external_context") = false,
+             "Initialize extractor with optional external context support")
         .def("extract", &PythonSiftExtractor::extract,
              "Extract SIFT features from image",
              "Extract SIFT features from a 2D numpy array (grayscale image). "
              "Returns a dictionary with 'num_features', 'positions', 'scales', "
-             "'orientations', and 'descriptors'.");
+             "'orientations', and 'descriptors'.")
+        .def("set_cuda_stream", &PythonSiftExtractor::set_cuda_stream,
+             "Set external CUDA stream handle (for PyCUDA integration)",
+             py::arg("stream_handle"))
+        .def("get_cuda_stream", &PythonSiftExtractor::get_cuda_stream,
+             "Get current CUDA stream handle")
+        .def("synchronize", &PythonSiftExtractor::synchronize,
+             "Synchronize CUDA stream")
+        .def("get_params", &PythonSiftExtractor::get_params,
+             "Get current configuration parameters")
+        .def("set_params", &PythonSiftExtractor::set_params,
+             "Update configuration parameters",
+             py::arg("params"));
     
     // Bind feature matcher
     py::class_<PythonSiftMatcher>(m, "SiftMatcher")
         .def(py::init<>())
         .def(py::init<float, float>())
+        .def(py::init<float, float, bool>(),
+             py::arg("min_score") = 0.85f, py::arg("max_ambiguity") = 0.95f, 
+             py::arg("external_context") = false,
+             "Initialize matcher with optional external context support")
         .def("match", &PythonSiftMatcher::match,
              "Match SIFT features between two sets",
              "Match features from two dictionaries returned by SiftExtractor.extract(). "
@@ -615,7 +775,19 @@ PYBIND11_MODULE(cuda_sift, m) {
              py::arg("matches_result"), py::arg("features1"), py::arg("features2"), 
              py::arg("num_loops") = 1000, py::arg("thresh") = 5.0f,
              "Compute homography transformation from pre-computed match results. "
-             "Returns a dictionary with 'homography', 'num_inliers', and 'score'.");
+             "Returns a dictionary with 'homography', 'num_inliers', and 'score'.")
+        .def("set_cuda_stream", &PythonSiftMatcher::set_cuda_stream,
+             "Set external CUDA stream handle (for PyCUDA integration)",
+             py::arg("stream_handle"))
+        .def("get_cuda_stream", &PythonSiftMatcher::get_cuda_stream,
+             "Get current CUDA stream handle")
+        .def("synchronize", &PythonSiftMatcher::synchronize,
+             "Synchronize CUDA stream")
+        .def("get_params", &PythonSiftMatcher::get_params,
+             "Get current matching parameters")
+        .def("set_params", &PythonSiftMatcher::set_params,
+             "Update matching parameters",
+             py::arg("params"));
              
     // Add some utility functions
     m.def("init_cuda", &InitCuda, py::arg("device") = 0,
