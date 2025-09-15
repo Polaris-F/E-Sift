@@ -116,8 +116,8 @@ for key, value in params.items():
 # 测试参数动态修改
 print("\n🔧 测试参数动态修改...")
 original_threshold = params['dog_threshold']
-sift_extractor.set_params({'dog_threshold': 0.03})
-print(f"✓ dog_threshold 从 {original_threshold} 修改为 0.03")
+sift_extractor.set_params({'dog_threshold': 1.4})
+print(f"✓ dog_threshold 从 {original_threshold} 修改为 1.4")
 
 # 用修改后的参数重新提取
 features1_modified = sift_extractor.extract(image1)
