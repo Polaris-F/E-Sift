@@ -45,6 +45,7 @@ BUILD_PYTHON=true
 CMAKE_PATH=""
 PARALLEL_JOBS=12
 BUILD_TYPE="Release"
+ENABLE_VERBOSE="OFF"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -64,6 +65,10 @@ while [[ $# -gt 0 ]]; do
             BUILD_TYPE="Debug"
             shift
             ;;
+        verbose|--verbose)
+            ENABLE_VERBOSE="ON"
+            shift
+            ;;
         --help)
             echo "Usage: $0 [OPTIONS]"
             echo "Options:"
@@ -71,6 +76,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --cmake-path PATH  指定cmake可执行文件路径"
             echo "  --jobs N           并行编译任务数（默认：12）"
             echo "  --debug            编译Debug版本"
+            echo "  verbose|--verbose 启用详细输出"
             echo "  --help             显示帮助信息"
             exit 0
             ;;
@@ -151,6 +157,7 @@ print_info "配置项目..."
 CMAKE_ARGS=(
     ".."
     "-DCMAKE_BUILD_TYPE=$BUILD_TYPE"
+    "-DENABLE_VERBOSE=$ENABLE_VERBOSE"
 )
 
 if [ "$BUILD_PYTHON" = true ]; then
@@ -159,6 +166,12 @@ if [ "$BUILD_PYTHON" = true ]; then
     print_info "Python绑定已启用"
 else
     print_info "Python绑定已禁用"
+fi
+
+if [ "$ENABLE_VERBOSE" = "ON" ]; then
+    print_info "详细输出已启用"
+else
+    print_info "详细输出已禁用"
 fi
 
 print_info "Running: $CMAKE_PATH ${CMAKE_ARGS[*]}"
