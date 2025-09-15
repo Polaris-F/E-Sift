@@ -34,56 +34,32 @@ set(PYTHON_SOURCES
     sift_bindings.cpp
 )
 
-# Enhanced Python extension with external context support
-set(PYTHON_ENHANCED_SOURCES
-    sift_bindings_v2.cpp
-)
-
-# Create the original Python module
+# Create the Python module
 pybind11_add_module(cuda_sift ${PYTHON_SOURCES})
-
-# Create the enhanced Python module with external context management
-pybind11_add_module(cuda_sift_enhanced ${PYTHON_ENHANCED_SOURCES})
 
 # Link with the shared CUDA SIFT library created in parent CMakeLists.txt
 target_link_libraries(cuda_sift PRIVATE cudasift_shared)
-target_link_libraries(cuda_sift_enhanced PRIVATE cudasift_shared)
 
-# Set properties for both modules
+# Set properties for the module
 set_target_properties(cuda_sift PROPERTIES
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED ON
-)
-
-set_target_properties(cuda_sift_enhanced PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED ON
 )
 
 # Compiler-specific options  
 target_compile_definitions(cuda_sift PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
-target_compile_definitions(cuda_sift_enhanced PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
 
 # CUDA specific settings
 if(CMAKE_CUDA_COMPILER)
     set_property(TARGET cuda_sift PROPERTY CUDA_STANDARD 14)
     set_property(TARGET cuda_sift PROPERTY CUDA_STANDARD_REQUIRED ON)
-    set_property(TARGET cuda_sift_enhanced PROPERTY CUDA_STANDARD 14)
-    set_property(TARGET cuda_sift_enhanced PROPERTY CUDA_STANDARD_REQUIRED ON)
     
     # Include CUDA architecture settings (适配Jetson平台)
     set_target_properties(cuda_sift PROPERTIES CUDA_ARCHITECTURES "53;62;72;75;86;87")
-    set_target_properties(cuda_sift_enhanced PROPERTIES CUDA_ARCHITECTURES "53;62;72;75;86;87")
 endif()
 
-# Add include paths for both modules
+# Add include paths for the module
 target_include_directories(cuda_sift PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src
-    ${CUDA_INCLUDE_DIRS}
-    ${Python_INCLUDE_DIRS}
-)
-
-target_include_directories(cuda_sift_enhanced PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../src
     ${CUDA_INCLUDE_DIRS}
     ${Python_INCLUDE_DIRS}

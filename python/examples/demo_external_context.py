@@ -54,14 +54,25 @@ print(f"✓ Stream设置完成: extractor={ext_stream}, matcher={match_stream}")
 
 # 加载图像
 print("📸 加载测试图像...")
-image1 = cv2.imread("/home/jetson/lhf/workspace_2/E-Sift/data/img1.jpg", cv2.IMREAD_GRAYSCALE)
-image2 = cv2.imread("/home/jetson/lhf/workspace_2/E-Sift/data/img2.jpg", cv2.IMREAD_GRAYSCALE)
+image1_gray = cv2.imread("/home/jetson/lhf/workspace_2/E-Sift/data/img1.jpg", cv2.IMREAD_GRAYSCALE)
+image2_gray = cv2.imread("/home/jetson/lhf/workspace_2/E-Sift/data/img2.jpg", cv2.IMREAD_GRAYSCALE)
 
-if image1 is None or image2 is None:
+image1_bgr = cv2.imread("/home/jetson/lhf/workspace_2/E-Sift/data/img1.jpg")
+image2_bgr = cv2.imread("/home/jetson/lhf/workspace_2/E-Sift/data/img2.jpg")
+
+if image1_gray is None or image2_gray is None:
     print("❌ 无法加载图像文件")
     sys.exit(1)
 
-print(f"✓ 图像加载成功: img1={image1.shape}, img2={image2.shape}")
+
+print(f"✓ BGR图像加载成功: img1={image1_bgr.shape}, img2={image2_bgr.shape}")
+print(f"✓ 灰度图像加载成功: img1={image1_gray.shape}, img2={image2_gray.shape}")
+print(f"  BGR数据类型: {image1_bgr.dtype}, 范围: {image1_bgr.min()}-{image1_bgr.max()}")
+
+# 当前使用灰度图像进行测试（BGR功能开发完成后切换）
+image1 = image1_gray
+image2 = image1_gray
+
 
 # 同步stream确保初始化完成
 stream.synchronize()
