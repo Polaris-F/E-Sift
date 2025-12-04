@@ -26,9 +26,9 @@ if (WIN32)
   set(EXTRA_CXX_FLAGS "/D_CRT_SECURE_NO_WARNINGS ")
   if(ENABLE_VERBOSE)
     set(EXTRA_CXX_FLAGS "${EXTRA_CXX_FLAGS} /DVERBOSE")
-    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_87;--compiler-options;-O2;-DVERBOSE")
+    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_89;--compiler-options;-O2;-DVERBOSE")
   else()
-    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_87;--compiler-options;-O2")
+    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_89;--compiler-options;-O2")
   endif()
 endif()
 if (UNIX)
@@ -36,17 +36,17 @@ if (UNIX)
     set(EXTRA_CXX_FLAGS "-msse2")
     if(ENABLE_VERBOSE)
       set(EXTRA_CXX_FLAGS "${EXTRA_CXX_FLAGS} -DVERBOSE")
-      list(APPEND CUDA_NVCC_FLAGS "-arch=sm_87;--compiler-options;-O2;-DVERBOSE")
+      list(APPEND CUDA_NVCC_FLAGS "-arch=sm_89;--compiler-options;-O2;-DVERBOSE")
     else()
-      list(APPEND CUDA_NVCC_FLAGS "-arch=sm_87;--compiler-options;-O2")
+      list(APPEND CUDA_NVCC_FLAGS "-arch=sm_89;--compiler-options;-O2")
     endif()
   else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ")
     if(ENABLE_VERBOSE)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVERBOSE")
-      list(APPEND CUDA_NVCC_FLAGS "-lineinfo;--compiler-options;-O2;-D_FORCE_INLINES;-DVERBOSE;-arch=sm_87")
+      list(APPEND CUDA_NVCC_FLAGS "-lineinfo;--compiler-options;-O2;-D_FORCE_INLINES;-DVERBOSE;-arch=sm_89")
     else()
-      list(APPEND CUDA_NVCC_FLAGS "-lineinfo;--compiler-options;-O2;-D_FORCE_INLINES;-arch=sm_87")
+      list(APPEND CUDA_NVCC_FLAGS "-lineinfo;--compiler-options;-O2;-D_FORCE_INLINES;-arch=sm_89")
     endif()
   endif()
 endif()
@@ -73,7 +73,7 @@ include_directories(
 
 #SET(CUDA_SEPARABLE_COMPILATION ON)
 
-cuda_add_executable(cudasift ${cuda_sources} ${sources} OPTIONS -arch=sm_87)
+cuda_add_executable(cudasift ${cuda_sources} ${sources} OPTIONS -arch=sm_89)
 
 # 创建使用TXT配置文件的版本
 set(txt_configurable_sources
@@ -85,9 +85,9 @@ set(txt_configurable_sources
   src/visualizer.h
 )
 
-cuda_add_executable(cudasift_txt ${cuda_sources} ${txt_configurable_sources} OPTIONS -arch=sm_87)
+cuda_add_executable(cudasift_txt ${cuda_sources} ${txt_configurable_sources} OPTIONS -arch=sm_89)
 
-#cuda_add_executable(l2net l2netD.cu OPTIONS -arch=sm_87)
+#cuda_add_executable(l2net l2netD.cu OPTIONS -arch=sm_89)
 
 set_target_properties(cudasift PROPERTIES
   COMPILE_FLAGS "${EXTRA_CXX_FLAGS}"			   
@@ -119,7 +119,7 @@ set(shared_sources
 )
 
 # 创建共享库供Python扩展链接
-cuda_add_library(cudasift_shared SHARED ${shared_cuda_sources} ${shared_sources} OPTIONS -arch=sm_87)
+cuda_add_library(cudasift_shared SHARED ${shared_cuda_sources} ${shared_sources} OPTIONS -arch=sm_89)
 set_target_properties(cudasift_shared PROPERTIES
   COMPILE_FLAGS "${EXTRA_CXX_FLAGS}"
   POSITION_INDEPENDENT_CODE ON
