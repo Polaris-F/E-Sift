@@ -11,7 +11,13 @@
 #define SCALEDOWN_W    64 // 60 
 
 // Scale down thread block height
-#define SCALEDOWN_H     8 // 修复线程数超限问题: (64+4)×(8+4)=816≤1024
+#ifndef SCALEDOWN_H
+  #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+    #define SCALEDOWN_H 16  // Desktop GPUs (Volta+): larger thread blocks
+  #else
+    #define SCALEDOWN_H  8  // Jetson / older GPUs: avoid exceeding 1024 threads
+  #endif
+#endif
 
 // Scale up thread block width
 #define SCALEUP_W      64

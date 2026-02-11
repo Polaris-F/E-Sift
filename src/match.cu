@@ -17,7 +17,9 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#if defined(__x86_64__) || defined(_M_X64)
 #include <immintrin.h>
+#endif
 #include "cudautils.h"
 
 #define RUNCPU 1
@@ -80,6 +82,7 @@ void MatchC2(float *h_pts1, float *h_pts2, float *h_score, int *h_index)
 	float *pt1 = &h_pts1[p1*NDIM];
 	for (int p2=b2;p2<b2+BSIZ;p2++) {
 	  float *pt2 = &h_pts2[p2*NDIM];
+#if defined(__x86_64__) || defined(_M_X64)
 	  __m256 score8 = _mm256_setzero_ps();
 	  for (int d=0;d<NDIM;d+=8) {
 	    __m256 v1 = _mm256_load_ps(pt1 + d);
@@ -89,6 +92,11 @@ void MatchC2(float *h_pts1, float *h_pts2, float *h_score, int *h_index)
 	  score8 = _mm256_add_ps(score8, _mm256_permute2f128_ps(score8, score8, 1));
 	  score8 = _mm256_hadd_ps(score8, score8);
 	  float score = _mm256_cvtss_f32(_mm256_hadd_ps(score8, score8));
+#else
+	  float score = 0.0f;
+	  for (int d=0;d<NDIM;d++)
+	    score += pt1[d]*pt2[d];
+#endif
 	  if (score>h_score[p1]) {
 	    h_score[p1] = score;
 	    h_index[p1] = p2;
@@ -110,6 +118,7 @@ void MatchC3(float *h_pts1, float *h_pts2, float *h_score, int *h_index)
 	float *pt1 = &h_pts1[p1*NDIM];
 	for (int p2=b2;p2<b2+BSIZ;p2++) {
 	  float *pt2 = &h_pts2[p2*NDIM];
+#if defined(__x86_64__) || defined(_M_X64)
 	  __m256 score8 = _mm256_setzero_ps();
 	  for (int d=0;d<NDIM;d+=8) {
 	    __m256 v1 = _mm256_load_ps(pt1 + d);
@@ -119,6 +128,11 @@ void MatchC3(float *h_pts1, float *h_pts2, float *h_score, int *h_index)
 	  score8 = _mm256_add_ps(score8, _mm256_permute2f128_ps(score8, score8, 1));
 	  score8 = _mm256_hadd_ps(score8, score8);
 	  float score = _mm256_cvtss_f32(_mm256_hadd_ps(score8, score8));
+#else
+	  float score = 0.0f;
+	  for (int d=0;d<NDIM;d++)
+	    score += pt1[d]*pt2[d];
+#endif
 	  if (score>h_score[p1]) {
 	    h_score[p1] = score;
 	    h_index[p1] = p2;
