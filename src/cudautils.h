@@ -2,6 +2,7 @@
 #define CUDAUTILS_H
 
 #include <cstdio>
+#include <chrono>
 #include <iostream>
 
 #ifdef WIN32
@@ -82,27 +83,15 @@ public:
 
 class TimerCPU
 {
-  static const int bits = 10;
 public:
-  long long beg_clock;
-  float freq;
-  TimerCPU(float freq_) : freq(freq_) {   // freq = clock frequency in MHz
-    beg_clock = getTSC(bits);
-  }
-  long long getTSC(int bits) {
-#ifdef WIN32
-    return __rdtsc()/(1LL<<bits);
-#else
-    unsigned int low, high;
-    __asm__(".byte 0x0f, 0x31" :"=a" (low), "=d" (high));
-    return ((long long)high<<(32-bits)) | ((long long)low>>bits);
-#endif
+  std::chrono::high_resolution_clock::time_point beg_clock;
+  TimerCPU(float freq_ = 0.0f) {
+    (void)freq_;
+    beg_clock = std::chrono::high_resolution_clock::now();
   }
   float read() {
-    long long end_clock = getTSC(bits);
-    long long Kcycles = end_clock - beg_clock;
-    float time = (float)(1<<bits)*Kcycles/freq/1e3f;
-    return time;
+    auto end_clock = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration<float, std::milli>(end_clock - beg_clock).count();
   }
 };
 
@@ -135,4 +124,3 @@ __device__ __inline__ T Shuffle(T var, unsigned int lane, int width = 32) {
 
 
 #endif
-
