@@ -1,147 +1,224 @@
-cmake_minimum_required(VERSION 3.12)  # 提高版本要求以支持Python扩展
+cmake_minimum_required(VERSION 3.18)
 
-project(cudaSift)
-set(cudaSift_VERSION_MAJOR 2)
-set(cudaSift_VERSION_MINOR 0)
-set(cudaSift_VERSION_PATCH 0)
+# ============================================================================
+# E-Sift: GPU-accelerated SIFT feature extraction and matching
+# Based on Celebrandil/CudaSift, extended with Python bindings and
+# multi-platform support (Linux x86, Linux ARM/Jetson, Windows)
+# ============================================================================
 
-# 添加选项以控制Python扩展构建
-option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
-# 添加选项以控制详细输出
-option(ENABLE_VERBOSE "Enable verbose output" OFF)
+project(ESift
+  VERSION 2.1.0
+  LANGUAGES CXX CUDA
+  DESCRIPTION "GPU-accelerated SIFT with CUDA"
+)
 
-set(CPACK_PACKAGE_VERSION_MAJOR "${cudaSift_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${cudaSift_VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${cudaSift_VERSION_PATCH}")
-set(CPACK_GENERATOR "ZIP")
-include(CPack)
+# ----------------------------------------------------------------------------
+# Options
+# ----------------------------------------------------------------------------
+option(ESIFT_BUILD_CLI        "Build command-line executables"   ON)
+option(ESIFT_BUILD_PYTHON     "Build Python bindings"           OFF)
+option(ESIFT_VERBOSE          "Enable verbose timing output"    OFF)
+option(ESIFT_BUILD_SHARED     "Build shared library"            OFF)
+option(BUILD_SHARED_LIBS      "Build shared libraries"          OFF)
 
+# ----------------------------------------------------------------------------
+# CUDA Architecture auto-detection
+#
+# Priority:
+#   1. User passes -DCMAKE_CUDA_ARCHITECTURES=xx on command line
+#   2. "native" — detect GPU on build machine (CMake 3.24+, CUDA 11.6+)
+#   3. Fallback to a sensible multi-arch default
+# ----------------------------------------------------------------------------
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES OR CMAKE_CUDA_ARCHITECTURES STREQUAL "")
+  # CMake 3.24+ supports "native" to auto-detect the GPU on the build host
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+    set(CMAKE_CUDA_ARCHITECTURES "native")
+    message(STATUS "CUDA architectures: auto-detecting (native)")
+  else()
+    # Fallback: cover Jetson (53,62,72,87) + desktop (75,86,89)
+    set(CMAKE_CUDA_ARCHITECTURES "53;62;72;75;86;87;89")
+    message(STATUS "CUDA architectures: using multi-arch fallback ${CMAKE_CUDA_ARCHITECTURES}")
+  endif()
+else()
+  message(STATUS "CUDA architectures: user-specified ${CMAKE_CUDA_ARCHITECTURES}")
+endif()
+
+# ----------------------------------------------------------------------------
+# Global compiler settings
+# ----------------------------------------------------------------------------
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Per-platform flags
+if(MSVC)
+  add_compile_options(/D_CRT_SECURE_NO_WARNINGS /O2)
+else()
+  add_compile_options(-O2)
+endif()
+
+if(ESIFT_VERBOSE)
+  add_compile_definitions(VERBOSE)
+endif()
+
+# ----------------------------------------------------------------------------
+# Dependencies
+# ----------------------------------------------------------------------------
 find_package(OpenCV REQUIRED)
-find_package(CUDA)
-if (NOT CUDA_FOUND)
-  message(STATUS "CUDA not found. Project will not be built.")
-endif(NOT CUDA_FOUND)
 
-if (WIN32)
-  set(EXTRA_CXX_FLAGS "/D_CRT_SECURE_NO_WARNINGS ")
-  if(ENABLE_VERBOSE)
-    set(EXTRA_CXX_FLAGS "${EXTRA_CXX_FLAGS} /DVERBOSE")
-    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_89;--compiler-options;-O2;-DVERBOSE")
-  else()
-    list(APPEND CUDA_NVCC_FLAGS "-arch=sm_89;--compiler-options;-O2")
-  endif()
-endif()
-if (UNIX)
-  if (APPLE)
-    set(EXTRA_CXX_FLAGS "-msse2")
-    if(ENABLE_VERBOSE)
-      set(EXTRA_CXX_FLAGS "${EXTRA_CXX_FLAGS} -DVERBOSE")
-      list(APPEND CUDA_NVCC_FLAGS "-arch=sm_89;--compiler-options;-O2;-DVERBOSE")
-    else()
-      list(APPEND CUDA_NVCC_FLAGS "-arch=sm_89;--compiler-options;-O2")
-    endif()
-  else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ")
-    if(ENABLE_VERBOSE)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVERBOSE")
-      list(APPEND CUDA_NVCC_FLAGS "-lineinfo;--compiler-options;-O2;-D_FORCE_INLINES;-DVERBOSE;-arch=sm_89")
-    else()
-      list(APPEND CUDA_NVCC_FLAGS "-lineinfo;--compiler-options;-O2;-D_FORCE_INLINES;-arch=sm_89")
-    endif()
-  endif()
+# CUDA runtime is handled natively since we declared CUDA as a project language.
+# We still need cudadevrt for device-side linking if needed.
+find_library(CUDA_DEVRT_LIBRARY cudadevrt
+  HINTS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}
+        ${CUDAToolkit_LIBRARY_DIR}
+        /usr/local/cuda/lib64
+)
+if(NOT CUDA_DEVRT_LIBRARY)
+  message(WARNING "cudadevrt not found, device linking may fail")
+  set(CUDA_DEVRT_LIBRARY "")
 endif()
 
-set(cuda_sources
-  src/cudaImage.cu  
-  src/cudaImage.h  
-  src/cudaSiftH.cu 
-  src/cudaSiftH.h  
-  src/matching.cu  
-  src/cudaSiftD.h  
-  src/cudaSift.h  
-  src/cudautils.h
-)  
-
-set(sources
-  src/geomFuncs.cpp  
-  src/mainSift.cpp  
+# ----------------------------------------------------------------------------
+# Core library: esift_core
+#
+# Contains all CUDA kernels and C++ utilities. This is the single source of
+# truth — executables and Python bindings all link against this.
+# ----------------------------------------------------------------------------
+set(ESIFT_CUDA_SOURCES
+  src/cudaImage.cu
+  src/cudaSiftH.cu
+  src/matching.cu
 )
 
-include_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-
-#SET(CUDA_SEPARABLE_COMPILATION ON)
-
-cuda_add_executable(cudasift ${cuda_sources} ${sources} OPTIONS -arch=sm_89)
-
-# 创建使用TXT配置文件的版本
-set(txt_configurable_sources
-  src/geomFuncs.cpp  
-  src/mainSift_txt.cpp
-  src/siftConfigTxt.cpp
-  src/siftConfigTxt.h
-  src/visualizer.cpp
-  src/visualizer.h
-)
-
-cuda_add_executable(cudasift_txt ${cuda_sources} ${txt_configurable_sources} OPTIONS -arch=sm_89)
-
-#cuda_add_executable(l2net l2netD.cu OPTIONS -arch=sm_89)
-
-set_target_properties(cudasift PROPERTIES
-  COMPILE_FLAGS "${EXTRA_CXX_FLAGS}"			   
-)
-
-set_target_properties(cudasift_txt PROPERTIES
-  COMPILE_FLAGS "${EXTRA_CXX_FLAGS}"			   
-)
-
-target_link_libraries(cudasift ${CUDA_cudadevrt_LIBRARY} ${OpenCV_LIBS})
-target_link_libraries(cudasift_txt ${CUDA_cudadevrt_LIBRARY} ${OpenCV_LIBS})
-
-# 创建共享库以供Python扩展使用
-set(shared_cuda_sources
-  src/cudaImage.cu  
-  src/cudaImage.h  
-  src/cudaSiftH.cu 
-  src/cudaSiftH.h  
-  src/matching.cu  
-  src/cudaSiftD.h  
-  src/cudaSift.h  
-  src/cudautils.h
-)
-
-set(shared_sources
+set(ESIFT_CPP_SOURCES
   src/geomFuncs.cpp
   src/siftConfigTxt.cpp
   src/visualizer.cpp
 )
 
-# 创建共享库供Python扩展链接
-cuda_add_library(cudasift_shared SHARED ${shared_cuda_sources} ${shared_sources} OPTIONS -arch=sm_89)
-set_target_properties(cudasift_shared PROPERTIES
-  COMPILE_FLAGS "${EXTRA_CXX_FLAGS}"
-  POSITION_INDEPENDENT_CODE ON
+set(ESIFT_HEADERS
+  src/cudaImage.h
+  src/cudaSift.h
+  src/cudaSiftD.h
+  src/cudaSiftH.h
+  src/cudautils.h
+  src/siftConfigTxt.h
+  src/visualizer.h
 )
-target_link_libraries(cudasift_shared ${CUDA_cudadevrt_LIBRARY} ${OpenCV_LIBS})
 
-# 条件编译Python扩展
-if(BUILD_PYTHON_BINDINGS)
-  message(STATUS "Python bindings enabled")
+# Build as STATIC by default; SHARED if user sets ESIFT_BUILD_SHARED or BUILD_SHARED_LIBS
+if(ESIFT_BUILD_SHARED OR BUILD_SHARED_LIBS)
+  set(_LIB_TYPE SHARED)
+else()
+  set(_LIB_TYPE STATIC)
+endif()
+
+add_library(esift_core ${_LIB_TYPE}
+  ${ESIFT_CUDA_SOURCES}
+  ${ESIFT_CPP_SOURCES}
+  ${ESIFT_HEADERS}
+)
+
+target_include_directories(esift_core
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<INSTALL_INTERFACE:include/esift>
+)
+
+target_link_libraries(esift_core
+  PUBLIC
+    ${OpenCV_LIBS}
+  PRIVATE
+    ${CUDA_DEVRT_LIBRARY}
+)
+
+# CUDA-specific properties
+set_target_properties(esift_core PROPERTIES
+  CUDA_SEPARABLE_COMPILATION OFF
+  CUDA_RESOLVE_DEVICE_SYMBOLS ON
+)
+
+# Generate -lineinfo for profiling in non-MSVC builds
+if(NOT MSVC)
+  target_compile_options(esift_core PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:-lineinfo>
+  )
+endif()
+
+# Export the library alias for sub-projects
+add_library(ESift::Core ALIAS esift_core)
+
+# ----------------------------------------------------------------------------
+# CLI executables (optional)
+# ----------------------------------------------------------------------------
+if(ESIFT_BUILD_CLI)
+  # Basic demo executable
+  add_executable(cudasift src/mainSift.cpp)
+  target_link_libraries(cudasift PRIVATE esift_core)
+
+  # Configurable version with TXT config and visualization
+  add_executable(cudasift_txt src/mainSift_txt.cpp)
+  target_link_libraries(cudasift_txt PRIVATE esift_core)
+endif()
+
+# ----------------------------------------------------------------------------
+# Python bindings (optional)
+# ----------------------------------------------------------------------------
+if(ESIFT_BUILD_PYTHON)
+  message(STATUS "Python bindings: enabled")
   add_subdirectory(python)
 endif()
 
-#  /usr/local/cuda/lib64/libcudadevrt.a ${OpenCV_LIBS} 
-#)
- 
-install(FILES 
-  ${cuda_sources} 
-  ${sources}
-  src/cudaSiftD.cu
-  CMakeLists.txt
-  DESTINATION .
+# ----------------------------------------------------------------------------
+# Install rules
+# ----------------------------------------------------------------------------
+include(GNUInstallDirs)
+
+install(TARGETS esift_core
+  EXPORT ESiftTargets
+  LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+install(FILES ${ESIFT_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/esift
+)
+
+if(ESIFT_BUILD_CLI)
+  install(TARGETS cudasift cudasift_txt
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  )
+endif()
+
 install(FILES data/left.pgm data/righ.pgm
-  DESTINATION data
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/esift/data
 )
+
+# ----------------------------------------------------------------------------
+# CPack
+# ----------------------------------------------------------------------------
+set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(CPACK_GENERATOR "ZIP")
+include(CPack)
+
+# ----------------------------------------------------------------------------
+# Summary
+# ----------------------------------------------------------------------------
+message(STATUS "")
+message(STATUS "=== E-Sift Build Configuration ===")
+message(STATUS "  Version:          ${PROJECT_VERSION}")
+message(STATUS "  CUDA Archs:       ${CMAKE_CUDA_ARCHITECTURES}")
+message(STATUS "  Build type:       ${CMAKE_BUILD_TYPE}")
+message(STATUS "  Library type:     ${_LIB_TYPE}")
+message(STATUS "  CLI executables:  ${ESIFT_BUILD_CLI}")
+message(STATUS "  Python bindings:  ${ESIFT_BUILD_PYTHON}")
+message(STATUS "  Verbose output:   ${ESIFT_VERBOSE}")
+message(STATUS "  OpenCV:           ${OpenCV_VERSION}")
+message(STATUS "  Install prefix:   ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "==================================")
+message(STATUS "")
