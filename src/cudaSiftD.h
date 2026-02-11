@@ -11,12 +11,13 @@
 #define SCALEDOWN_W    64 // 60 
 
 // Scale down thread block height
+// NOTE: SCALEDOWN_H must be consistent between host and device code.
+// Do NOT use __CUDA_ARCH__ here — it is only defined during device
+// compilation, causing a host/device mismatch that leads to illegal
+// memory accesses at runtime.
+// Override at build time with: cmake -DSCALEDOWN_H=8 (for Jetson / older GPUs)
 #ifndef SCALEDOWN_H
-  #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
-    #define SCALEDOWN_H 16  // Desktop GPUs (Volta+): larger thread blocks
-  #else
-    #define SCALEDOWN_H  8  // Jetson / older GPUs: avoid exceeding 1024 threads
-  #endif
+  #define SCALEDOWN_H 16
 #endif
 
 // Scale up thread block width

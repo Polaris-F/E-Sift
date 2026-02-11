@@ -20,6 +20,7 @@ option(ESIFT_BUILD_PYTHON     "Build Python bindings"           OFF)
 option(ESIFT_VERBOSE          "Enable verbose timing output"    OFF)
 option(ESIFT_BUILD_SHARED     "Build shared library"            OFF)
 option(BUILD_SHARED_LIBS      "Build shared libraries"          OFF)
+set(SCALEDOWN_H "" CACHE STRING "ScaleDown kernel tile height (default=16, set 8 for Jetson)")
 
 # ----------------------------------------------------------------------------
 # CUDA Architecture auto-detection
@@ -54,13 +55,23 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Per-platform flags
 if(MSVC)
-  add_compile_options(/D_CRT_SECURE_NO_WARNINGS /O2)
+  add_compile_options(
+    $<$<COMPILE_LANGUAGE:CXX,C>:/D_CRT_SECURE_NO_WARNINGS>
+    $<$<COMPILE_LANGUAGE:CXX,C>:/O2>
+    $<$<COMPILE_LANGUAGE:CXX,C>:/utf-8>
+  )
 else()
   add_compile_options(-O2)
 endif()
 
 if(ESIFT_VERBOSE)
   add_compile_definitions(VERBOSE)
+endif()
+
+# Pass user-specified SCALEDOWN_H to the compiler
+if(NOT SCALEDOWN_H STREQUAL "")
+  add_compile_definitions(SCALEDOWN_H=${SCALEDOWN_H})
+  message(STATUS "SCALEDOWN_H overridden to ${SCALEDOWN_H}")
 endif()
 
 # ----------------------------------------------------------------------------
@@ -139,6 +150,11 @@ set_target_properties(esift_core PROPERTIES
   CUDA_SEPARABLE_COMPILATION OFF
   CUDA_RESOLVE_DEVICE_SYMBOLS ON
 )
+
+# Fix MSVC + NVCC flag conflicts: remove -MD/-MT from CUDA compilation
+if(MSVC)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=/utf-8")
+endif()
 
 # Generate -lineinfo for profiling in non-MSVC builds
 if(NOT MSVC)

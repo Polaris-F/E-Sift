@@ -1,7 +1,11 @@
+#ifdef _MSC_VER
+#define _USE_MATH_DEFINES
+#endif
 #include "visualizer.h"
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <cmath>
 
 SiftVisualizer::SiftVisualizer(bool save_to_file, bool show_window)
     : save_to_file_(save_to_file), show_window_(show_window),
